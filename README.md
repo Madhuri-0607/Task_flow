@@ -1,6 +1,6 @@
 # TaskFlow — Team Task Manager
 
-A full-stack web application for managing team projects and tasks with role-based access control. Built with Python Flask, PostgreSQL, and vanilla JavaScript. Deployed on Railway.
+TaskFlow is a simple team task management web app built using Flask and PostgreSQL. It helps admins create projects, assign tasks, and manage team members.
 
 ---
 
@@ -19,7 +19,7 @@ A full-stack web application for managing team projects and tasks with role-base
 
 ## Features
 
-- **JWT Authentication** — Secure signup/login with token-based sessions
+- **JWT Authentication** — Secure login and signup using JWT authentication
 - **Role-Based Access Control** — Admin and Member roles with enforced permissions
 - **Project Management** — Admins create projects and manage team membership by email
 - **Task Management** — Create, assign, and track tasks with due dates
@@ -29,7 +29,7 @@ A full-stack web application for managing team projects and tasks with role-base
 
 ---
 
-## Tech Stack
+## Technologies Used
 
 | Layer      | Technology                          |
 |------------|-------------------------------------|
@@ -153,37 +153,7 @@ Visit: [http://localhost:5000](http://localhost:5000)
 
 ## Deploying to Railway
 
-### Prerequisites
-- A [Railway](https://railway.app) account
-- The project pushed to a GitHub repository
-
-### Steps
-
-**1. Create Railway project**
-- Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-- Select your repository
-
-**2. Add PostgreSQL**
-- In your Railway project → **+ New** → **Database** → **Add PostgreSQL**
-- Railway will auto-set `DATABASE_URL` in your service environment
-
-**3. Set environment variables**
-In your **app service** → **Variables**, add:
-
-```
-SECRET_KEY=<generate with: python -c "import secrets; print(secrets.token_hex(32))">
-JWT_SECRET_KEY=<generate with: python -c "import secrets; print(secrets.token_hex(32))">
-FLASK_DEBUG=false
-```
-
-> `DATABASE_URL` is automatically injected by Railway's PostgreSQL plugin — do not set it manually.
-
-**4. Deploy**
-Railway will auto-deploy on every push to your main branch.
-
-**5. Generate public domain**
-Go to your service → **Settings** → **Networking** → **Generate Domain**
-
+The application is deployed on Railway with PostgreSQL database support.
 ---
 
 ## Environment Variables
@@ -207,3 +177,5 @@ project_members  project_id (FK), user_id (FK)   [many-to-many]
 tasks          id, title, description, project_id (FK), assigned_to (FK→users),
                status, due_date, created_at
 ```
+
+This project was built as part of my backend/full-stack learning journey to understand authentication, APIs, database integration, and deployment.
