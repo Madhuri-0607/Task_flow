@@ -188,8 +188,12 @@ def create_app():
     # ─── DB Initialization ──────────────────────────────────────────────────────
     with app.app_context():
         try:
-            # Drop and recreate all tables to ensure clean schema
-            db.drop_all()
+            # Try to drop existing tables (may not exist on first run)
+            try:
+                db.drop_all()
+            except Exception as drop_error:
+                logger.debug(f"Could not drop tables (expected on first run): {str(drop_error)}")
+            
             db.create_all()
             logger.info("✓ Database tables created/verified")
         except Exception as e:
