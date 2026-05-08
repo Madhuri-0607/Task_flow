@@ -188,6 +188,8 @@ def create_app():
     # ─── DB Initialization ──────────────────────────────────────────────────────
     with app.app_context():
         try:
+            # Drop and recreate all tables to ensure clean schema
+            db.drop_all()
             db.create_all()
             logger.info("✓ Database tables created/verified")
         except Exception as e:
