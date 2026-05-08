@@ -27,6 +27,12 @@ def init_database():
     
     with app.app_context():
         try:
+            # Test database connection first
+            from sqlalchemy import text
+            db.session.execute(text("SELECT 1"))
+            db.session.close()
+            logger.info("✓ Database connection successful")
+            
             # Only create tables, don't drop (preserves existing data)
             db.create_all()
             logger.info("✓ Database tables created/verified successfully")

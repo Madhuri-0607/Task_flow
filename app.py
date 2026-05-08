@@ -153,8 +153,10 @@ def create_app():
     @app.route("/api/health")
     def health():
         try:
-            # Simple database health check
-            db.session.execute("SELECT 1")
+            # Simple database health check with text() for SQLAlchemy 2.0+
+            from sqlalchemy import text
+            db.session.execute(text("SELECT 1"))
+            db.session.close()
             return jsonify({
                 "status": "healthy",
                 "message": "Team Task Manager API is running",
@@ -162,9 +164,10 @@ def create_app():
             }), 200
         except Exception as e:
             logger.error(f"Health check failed: {str(e)}")
+            # App can still serve pages even if DB is temporarily down
             return jsonify({
                 "status": "unhealthy",
-                "message": "Database connection failed"
+                "message": f"Database connection failed: {str(e)}"
             }), 503
 
     # ─── Global Error Handlers ──────────────────────────────────────────────────
@@ -193,7 +196,7 @@ def create_app():
             db.create_all()
             logger.info("✓ Database tables verified/created")
         except Exception as e:
-            logger.warning(f"Database tables may already exist: {str(e)}")
+            logger.warning(f"Database tables may already exist or connection issue: {str(e)}")
 
     return app
 

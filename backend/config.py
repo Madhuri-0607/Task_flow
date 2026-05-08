@@ -30,12 +30,20 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Connection pool settings - critical for Railway PostgreSQL stability
+    _connect_args = {
+        "connect_timeout": 10,
+    }
+    # Add SSL for PostgreSQL on Railway
+    if "postgresql" in _fix_db_url(_raw_db_url):
+        _connect_args["sslmode"] = "require"
+    
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,        # Detect stale connections before using them
         "pool_recycle": 280,          # Recycle before Railway's ~300s timeout
         "pool_size": 5,
         "max_overflow": 10,
         "echo": False,                # Set to True for SQL debugging
+        "connect_args": _connect_args,
     }
     
     # ─── JWT Configuration ─────────────────────────────────────────────────
