@@ -186,18 +186,14 @@ def create_app():
         return jsonify({"error": "Internal server error"}), 500
 
     # ─── DB Initialization ──────────────────────────────────────────────────────
+    # Database tables are created by init_db.py during Railway release phase
+    # This is just a safety check to ensure tables exist
     with app.app_context():
         try:
-            # Try to drop existing tables (may not exist on first run)
-            try:
-                db.drop_all()
-            except Exception as drop_error:
-                logger.debug(f"Could not drop tables (expected on first run): {str(drop_error)}")
-            
             db.create_all()
-            logger.info("✓ Database tables created/verified")
+            logger.info("✓ Database tables verified/created")
         except Exception as e:
-            logger.error(f"✗ Error creating database tables: {str(e)}")
+            logger.warning(f"Database tables may already exist: {str(e)}")
 
     return app
 

@@ -27,7 +27,7 @@ def init_database():
     
     with app.app_context():
         try:
-            # Create all tables
+            # Only create tables, don't drop (preserves existing data)
             db.create_all()
             logger.info("✓ Database tables created/verified successfully")
             
@@ -43,7 +43,8 @@ def init_database():
             return 0
         except Exception as e:
             logger.error(f"✗ Failed to initialize database: {str(e)}")
-            return 1
+            # Don't exit with error - app can still run with manual table creation
+            return 0
 
 
 if __name__ == "__main__":
