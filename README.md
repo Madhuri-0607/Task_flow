@@ -16,8 +16,8 @@ the link is working in mobile but not in desktop,)**
 
 | Role   | Email               | Password   |
 |--------|---------------------|------------|
-| Admin  | admin@demo.com      | admin123   |
-| Member | member@demo.com     | member123  |
+| Admin  | admin@123.com      | admin123   |
+| Member | hani@123.com     | hani123  |
 
 ---
 
