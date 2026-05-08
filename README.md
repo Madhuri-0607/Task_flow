@@ -5,8 +5,12 @@ A full-stack web application for managing team projects and tasks with role-base
 ---
 
 ## Live Demo
+[web-production-a7572.up.railway.app](https://web-production-a7572.up.railway.app/)
 
-> **[https://your-app.up.railway.app](https://your-app.up.railway.app)**
+
+how to test after deploying
+
+the link is working in mobile but not in desktop,)**
 
 **Demo credentials:**
 
