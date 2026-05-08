@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project - TaskFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo">TF</div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard" class="nav-item">
+        <span class="nav-icon">D</span> Dashboard
+      </a>
+      <a href="#" class="nav-item" id="newTaskNav">
+        <span class="nav-icon">+</span> New Task
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="avatarInitial"></div>
+        <div class="user-info">
+          <span class="user-name" id="userName"></span>
+          <span class="user-role badge" id="userRole"></span>
+        </div>
+      </div>
+      <button class="logout-btn" id="logoutBtn" title="Sign out">Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="page-header">
+      <div>
+        <a href="/dashboard" class="back-link">&larr; Back to Dashboard</a>
+        <h1 class="page-title" id="projectTitle">Loading...</h1>
+        <p class="page-sub" id="projectDesc"></p>
+      </div>
+      <button class="btn-accent" id="addTaskBtn">+ Add Task</button>
+    </header>
+
+    <div class="kanban-board">
+      <div class="kanban-col" id="col-todo">
+        <div class="col-header">
+          <span class="col-title">Todo</span>
+          <span class="col-count" id="count-todo">0</span>
+        </div>
+        <div class="col-body" id="tasks-todo"></div>
+      </div>
+      <div class="kanban-col" id="col-progress">
+        <div class="col-header">
+          <span class="col-title">In Progress</span>
+          <span class="col-count" id="count-progress">0</span>
+        </div>
+        <div class="col-body" id="tasks-progress"></div>
+      </div>
+      <div class="kanban-col" id="col-done">
+        <div class="col-header">
+          <span class="col-title">Done</span>
+          <span class="col-count" id="count-done">0</span>
+        </div>
+        <div class="col-body" id="tasks-done"></div>
+      </div>
+    </div>
+
+    <section class="section" style="margin-top:2rem">
+      <div class="section-header">
+        <h2 class="section-title">Team Members</h2>
+        <button class="btn-ghost-sm" id="addMemberBtn">+ Add Member</button>
+      </div>
+      <div id="membersList" class="members-list"></div>
+    </section>
+  </main>
+
+  <div class="modal-overlay hidden" id="taskModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="taskModalTitle">New Task</h3>
+        <button class="modal-close" id="closeTaskModal">x</button>
+      </div>
+      <div id="taskAlert" class="alert hidden"></div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Task Title *</label>
+          <input type="text" id="taskTitle" placeholder="e.g. Design landing page" />
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea id="taskDesc" rows="2" placeholder="Optional details..."></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Assign To</label>
+            <select id="taskAssignee"><option value="">Unassigned</option></select>
+          </div>
+          <div class="field">
+            <label>Due Date</label>
+            <input type="date" id="taskDue" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="taskStatus">
+            <option value="todo">Todo</option>
+            <option value="in_progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="cancelTaskModal">Cancel</button>
+        <button class="btn-accent" id="saveTaskBtn">Create Task</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="memberModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Add Team Member</h3>
+        <button class="modal-close" id="closeMemberModal">x</button>
+      </div>
+      <div id="memberAlert" class="alert hidden"></div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Member Email</label>
+          <input type="email" id="memberEmail" placeholder="colleague@company.com" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="cancelMemberModal">Cancel</button>
+        <button class="btn-accent" id="saveMemberBtn">Add Member</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login";
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const params = new URLSearchParams(location.search);
+    const projectId = params.get("id");
+    if (!projectId) window.location.href = "/dashboard";
+
+    let projectData = null;
+    let editingTaskId = null;
+
+    document.getElementById("avatarInitial").textContent = (user.name || "?")[0].toUpperCase();
+    document.getElementById("userName").textContent = user.name;
+    const roleEl = document.getElementById("userRole");
+    roleEl.textContent = user.role;
+    roleEl.className = "user-role badge " + (user.role === "admin" ? "badge-admin" : "badge-member");
+
+    if (user.role !== "admin") {
+      document.getElementById("addTaskBtn").style.display = "none";
+      document.getElementById("newTaskNav").style.display = "none";
+      document.getElementById("addMemberBtn").style.display = "none";
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "/login";
+    });
+
+    const taskModal = document.getElementById("taskModal");
+    function openTaskModal(task = null) {
+      editingTaskId = task?.id || null;
+      document.getElementById("taskModalTitle").textContent = task ? "Edit Task" : "New Task";
+      document.getElementById("saveTaskBtn").textContent = task ? "Save Changes" : "Create Task";
+      document.getElementById("taskTitle").value = task?.title || "";
+      document.getElementById("taskDesc").value = task?.description || "";
+      document.getElementById("taskDue").value = task?.due_date || "";
+      document.getElementById("taskStatus").value = task?.status || "todo";
+
+      const sel = document.getElementById("taskAssignee");
+      sel.innerHTML = '<option value="">Unassigned</option>';
+      if (projectData) {
+        projectData.team_members.forEach(m => {
+          const opt = document.createElement("option");
+          opt.value = m.id;
+          opt.textContent = m.name;
+          if (task?.assigned_to === m.id) opt.selected = true;
+          sel.appendChild(opt);
+        });
+      }
+      taskModal.classList.remove("hidden");
+    }
+
+    function closeTaskModal() {
+      taskModal.classList.add("hidden");
+      document.getElementById("taskAlert").className = "alert hidden";
+    }
+
+    document.getElementById("addTaskBtn").addEventListener("click", () => openTaskModal());
+    document.getElementById("newTaskNav").addEventListener("click", () => openTaskModal());
+    document.getElementById("closeTaskModal").addEventListener("click", closeTaskModal);
+    document.getElementById("cancelTaskModal").addEventListener("click", closeTaskModal);
+
+    document.getElementById("saveTaskBtn").addEventListener("click", async () => {
+      const title = document.getElementById("taskTitle").value.trim();
+      const alertEl = document.getElementById("taskAlert");
+      if (!title) {
+        alertEl.textContent = "Title required";
+        alertEl.className = "alert alert-error";
+        return;
+      }
+
+      const body = {
+        title,
+        description: document.getElementById("taskDesc").value,
+        assigned_to: document.getElementById("taskAssignee").value || null,
+        due_date: document.getElementById("taskDue").value || null,
+        status: document.getElementById("taskStatus").value,
+        project_id: parseInt(projectId),
+      };
+
+      try {
+        let res;
+        if (editingTaskId) {
+          res = await apiFetch(`/api/tasks/${editingTaskId}`, { method: "PUT", body: JSON.stringify(body) });
+        } else {
+          res = await apiFetch("/api/tasks", { method: "POST", body: JSON.stringify(body) });
+        }
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+        closeTaskModal();
+        loadProject();
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.className = "alert alert-error";
+      }
+    });
+
+    const memberModal = document.getElementById("memberModal");
+    document.getElementById("addMemberBtn").addEventListener("click", () => memberModal.classList.remove("hidden"));
+    document.getElementById("closeMemberModal").addEventListener("click", () => memberModal.classList.add("hidden"));
+    document.getElementById("cancelMemberModal").addEventListener("click", () => memberModal.classList.add("hidden"));
+    document.getElementById("saveMemberBtn").addEventListener("click", async () => {
+      const email = document.getElementById("memberEmail").value.trim();
+      const alertEl = document.getElementById("memberAlert");
+      if (!email) {
+        alertEl.textContent = "Email required";
+        alertEl.className = "alert alert-error";
+        return;
+      }
+      try {
+        const res = await apiFetch(`/api/projects/${projectId}/members`, { method: "POST", body: JSON.stringify({ email }) });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+        memberModal.classList.add("hidden");
+        document.getElementById("memberEmail").value = "";
+        loadProject();
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.className = "alert alert-error";
+      }
+    });
+
+    async function updateStatus(taskId, status) {
+      try {
+        await apiFetch(`/api/tasks/${taskId}`, { method: "PUT", body: JSON.stringify({ status }) });
+        loadProject();
+      } catch {}
+    }
+
+    async function deleteTask(taskId) {
+      if (!confirm("Delete this task?")) return;
+      try {
+        await apiFetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+        loadProject();
+      } catch {}
+    }
+
+    function renderTasks(tasks) {
+      const cols = { "todo": [], "in_progress": [], "done": [] };
+      tasks.forEach(t => { if (cols[t.status]) cols[t.status].push(t); });
+
+      const colMap = { "todo": "todo", "in_progress": "progress", "done": "done" };
+      const labelMap = { "todo": "Todo", "in_progress": "In Progress", "done": "Done" };
+
+      Object.entries(cols).forEach(([status, list]) => {
+        const key = colMap[status];
+        document.getElementById(`count-${key}`).textContent = list.length;
+        const body = document.getElementById(`tasks-${key}`);
+        if (!list.length) {
+          body.innerHTML = `<div class="col-empty">No tasks here</div>`;
+          return;
+        }
+        body.innerHTML = list.map(t => {
+          const overdueClass = t.is_overdue ? " overdue" : "";
+          const canUpdateStatus = user.role === "admin" || t.assigned_to === user.id;
+          const statusOptions = canUpdateStatus
+            ? ["todo", "in_progress", "done"]
+              .filter(s => s !== status)
+              .map(s => `<button class="task-action" onclick="event.stopPropagation();updateStatus(${t.id},'${s}')">&rarr; ${labelMap[s]}</button>`)
+              .join("")
+            : "";
+          const actions = [
+            statusOptions,
+            user.role === "admin" ? `<button class="task-action danger" onclick="event.stopPropagation();deleteTask(${t.id})">Delete</button>` : "",
+          ].filter(Boolean).join("");
+          return `
+          <div class="task-card${overdueClass}">
+            <div class="task-card-header">
+              <span class="task-title">${escHtml(t.title)}</span>
+              ${user.role === "admin" ? `<button class="task-edit-btn" onclick="event.stopPropagation();editTask(${t.id})">Edit</button>` : ""}
+            </div>
+            ${t.description ? `<p class="task-desc">${escHtml(t.description)}</p>` : ""}
+            <div class="task-meta">
+              ${t.assignee_name ? `<span class="assignee-chip">${escHtml(t.assignee_name)}</span>` : ""}
+              ${t.due_date ? `<span class="due-chip${t.is_overdue ? " overdue" : ""}">${t.is_overdue ? "Overdue: " : ""}${t.due_date}</span>` : ""}
+            </div>
+            ${actions ? `<div class="task-actions">${actions}</div>` : ""}
+          </div>`;
+        }).join("");
+      });
+    }
+
+    function editTask(taskId) {
+      const task = projectData?.tasks?.find(t => t.id === taskId);
+      if (task) openTaskModal(task);
+    }
+
+    async function loadProject() {
+      try {
+        const res = await apiFetch(`/api/projects/${projectId}`);
+        if (!res.ok) {
+          window.location.href = "/dashboard";
+          return;
+        }
+        projectData = await res.json();
+
+        document.getElementById("projectTitle").textContent = projectData.title;
+        document.getElementById("projectDesc").textContent = projectData.description || "";
+        document.title = `${projectData.title} - TaskFlow`;
+
+        renderTasks(projectData.tasks || []);
+
+        const ml = document.getElementById("membersList");
+        ml.innerHTML = (projectData.team_members || []).map(m => `
+          <div class="member-chip">
+            <div class="member-avatar">${m.name[0].toUpperCase()}</div>
+            <div>
+              <div class="member-name">${escHtml(m.name)}</div>
+              <div class="member-email">${escHtml(m.email)}</div>
+            </div>
+            <span class="badge ${m.role === "admin" ? "badge-admin" : "badge-member"}">${m.role}</span>
+          </div>
+        `).join("");
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadProject();
+  </script>
+</body>
+</html>

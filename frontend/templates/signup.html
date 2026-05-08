@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up - TaskFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/auth.css" />
+</head>
+<body>
+  <div class="split-layout">
+    <div class="brand-side">
+      <div class="brand-content">
+        <div class="logo">TF</div>
+        <h1 class="brand-title">Task<br/>Flow</h1>
+        <p class="brand-sub">Where teams ship things.</p>
+        <div class="feature-list">
+          <div class="feature-item"><span class="check">OK</span> Role-based access control</div>
+          <div class="feature-item"><span class="check">OK</span> Task status tracking</div>
+          <div class="feature-item"><span class="check">OK</span> Project-level permissions</div>
+          <div class="feature-item"><span class="check">OK</span> Due date and overdue alerts</div>
+        </div>
+      </div>
+      <div class="brand-grid"></div>
+    </div>
+    <div class="form-side">
+      <div class="form-container">
+        <div class="form-header">
+          <p class="form-eyebrow">Get started free</p>
+          <h2 class="form-title">Create your account</h2>
+        </div>
+
+        <div id="alert" class="alert hidden"></div>
+
+        <form id="signupForm" class="auth-form" autocomplete="off" novalidate>
+          <div class="field">
+            <label for="name">Full name</label>
+            <input type="text" id="name" placeholder="Jane Smith" autocomplete="off" required />
+          </div>
+          <div class="field">
+            <label for="email">Work email</label>
+            <input type="email" id="email" placeholder="jane@company.com" autocomplete="off" required />
+          </div>
+          <div class="field">
+            <label for="password">Password <span class="hint">(min 6 chars)</span></label>
+            <input type="password" id="password" placeholder="Password" autocomplete="off" required />
+          </div>
+          <button type="submit" class="btn-primary" id="submitBtn">
+            <span class="btn-text">Create Account</span>
+            <span class="btn-loader hidden">...</span>
+          </button>
+        </form>
+
+        <p class="form-footer">
+          Already have an account? <a href="/login">Sign in &rarr;</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (localStorage.getItem("token")) window.location.href = "/dashboard";
+
+    // Clear form fields immediately on page load to prevent showing saved credentials
+    document.getElementById("name").value = "";
+    document.getElementById("email").value = "";
+    document.getElementById("password").value = "";
+
+    document.getElementById("signupForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submitBtn");
+      const alert = document.getElementById("alert");
+
+      btn.disabled = true;
+      btn.querySelector(".btn-text").textContent = "Creating account...";
+      alert.className = "alert hidden";
+
+      try {
+        const res = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: document.getElementById("name").value.trim(),
+            email: document.getElementById("email").value.trim(),
+            password: document.getElementById("password").value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Signup failed");
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        window.location.href = "/member/dashboard";
+      } catch (err) {
+        alert.textContent = err.message;
+        alert.className = "alert alert-error";
+        btn.disabled = false;
+        btn.querySelector(".btn-text").textContent = "Create Account";
+      }
+    });
+  </script>
+</body>
+</html>

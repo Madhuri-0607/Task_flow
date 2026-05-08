@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables (NEVER commit these)
+.env
+.env.example
+
+# Database files (use Railway PostgreSQL in production)
+*.sqlite3
+*.db
+instance/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+
+# Documentation (keep README.md and .txt files, ignore other .md files)
+*.md
+!README.md
+.idea/

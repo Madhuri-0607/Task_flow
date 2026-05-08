@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - TaskFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo">TF</div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard" class="nav-item active">
+        <span class="nav-icon">D</span> Dashboard
+      </a>
+      <a href="#" class="nav-item" id="newProjectBtn">
+        <span class="nav-icon">+</span> New Project
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="avatarInitial"></div>
+        <div class="user-info">
+          <span class="user-name" id="userName"></span>
+          <span class="user-role badge" id="userRole"></span>
+        </div>
+      </div>
+      <button class="logout-btn" id="logoutBtn" title="Sign out">Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-sub" id="greeting"></p>
+      </div>
+      <button class="btn-accent" id="headerNewProject">+ New Project</button>
+    </header>
+
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Projects</div>
+        <div class="stat-value" id="statProjects">-</div>
+      </div>
+      <div class="stat-card accent-todo">
+        <div class="stat-label">Total Tasks</div>
+        <div class="stat-value" id="statTotal">-</div>
+      </div>
+      <div class="stat-card accent-done">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value" id="statDone">-</div>
+      </div>
+      <div class="stat-card accent-progress">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value" id="statProgress">-</div>
+      </div>
+      <div class="stat-card accent-overdue">
+        <div class="stat-label">Overdue</div>
+        <div class="stat-value" id="statOverdue">-</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Projects</h2>
+        <span class="section-count" id="projectCount"></span>
+      </div>
+      <div id="projectsGrid" class="projects-grid">
+        <div class="loading-state">Loading projects...</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">My Tasks</h2>
+        <span class="section-count" id="myTaskCount"></span>
+      </div>
+      <div id="myTasksList" class="task-list">
+        <div class="loading-state">Loading tasks...</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay hidden" id="projectModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>New Project</h3>
+        <button class="modal-close" id="closeProjectModal">x</button>
+      </div>
+      <div id="modalAlert" class="alert hidden"></div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Project Title *</label>
+          <input type="text" id="projectTitle" placeholder="e.g. Website Redesign" />
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea id="projectDesc" placeholder="What is this project about?" rows="3"></textarea>
+        </div>
+        <div class="field">
+          <label>Add Team Members <span class="hint">(emails, comma-separated)</span></label>
+          <input type="text" id="memberEmails" placeholder="alice@co.com, bob@co.com" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="cancelProjectModal">Cancel</button>
+        <button class="btn-accent" id="createProjectBtn">Create Project</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login";
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+    document.getElementById("avatarInitial").textContent = (user.name || "?")[0].toUpperCase();
+    document.getElementById("userName").textContent = user.name || "User";
+    const roleEl = document.getElementById("userRole");
+    roleEl.textContent = user.role || "Member";
+    roleEl.className = "user-role badge " + (user.role === "admin" ? "badge-admin" : "badge-member");
+    document.getElementById("greeting").textContent = `Good ${getGreeting()}, ${user.name?.split(" ")[0] || "there"}`;
+
+    function getGreeting() {
+      const h = new Date().getHours();
+      return h < 12 ? "morning" : h < 18 ? "afternoon" : "evening";
+    }
+
+    if (user.role !== "admin") {
+      document.getElementById("newProjectBtn").style.display = "none";
+      document.getElementById("headerNewProject").style.display = "none";
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "/login";
+    });
+
+    const modal = document.getElementById("projectModal");
+    function openModal() { modal.classList.remove("hidden"); }
+    function closeModal() { modal.classList.add("hidden"); }
+    document.getElementById("newProjectBtn").addEventListener("click", openModal);
+    document.getElementById("headerNewProject").addEventListener("click", openModal);
+    document.getElementById("closeProjectModal").addEventListener("click", closeModal);
+    document.getElementById("cancelProjectModal").addEventListener("click", closeModal);
+    modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+
+    document.getElementById("createProjectBtn").addEventListener("click", async () => {
+      const title = document.getElementById("projectTitle").value.trim();
+      const alertEl = document.getElementById("modalAlert");
+      if (!title) {
+        alertEl.textContent = "Title is required";
+        alertEl.className = "alert alert-error";
+        return;
+      }
+      const emails = document.getElementById("memberEmails").value
+        .split(",").map(e => e.trim()).filter(Boolean);
+
+      try {
+        const res = await apiFetch("/api/projects", {
+          method: "POST",
+          body: JSON.stringify({ title, description: document.getElementById("projectDesc").value, member_emails: emails }),
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+        closeModal();
+        loadDashboard();
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.className = "alert alert-error";
+      }
+    });
+
+    async function loadDashboard() {
+      await Promise.all([loadStats(), loadProjects(), loadMyTasks()]);
+    }
+
+    async function loadStats() {
+      try {
+        const res = await apiFetch("/api/projects/stats");
+        const d = await res.json();
+        document.getElementById("statProjects").textContent = d.total_projects;
+        document.getElementById("statTotal").textContent = d.total_tasks;
+        document.getElementById("statDone").textContent = d.completed;
+        document.getElementById("statProgress").textContent = d.in_progress;
+        document.getElementById("statOverdue").textContent = d.overdue;
+      } catch {}
+    }
+
+    async function loadProjects() {
+      const grid = document.getElementById("projectsGrid");
+      try {
+        const res = await apiFetch("/api/projects");
+        const d = await res.json();
+        document.getElementById("projectCount").textContent = d.count === 1 ? "1 project" : d.count + " projects";
+
+        if (!d.projects.length) {
+          grid.innerHTML = `<div class="empty-state">
+            <div class="empty-icon">No projects yet</div>
+            <p>${user.role === "admin" ? "Create your first project to get started." : "You haven't been added to any projects yet."}</p>
+          </div>`;
+          return;
+        }
+
+        grid.innerHTML = d.projects.map(p => `
+          <div class="project-card" onclick="window.location='/project?id=${p.id}'">
+            <div class="project-card-header">
+              <h3 class="project-name">${escHtml(p.title)}</h3>
+              <span class="task-badge">${p.task_count} tasks</span>
+            </div>
+            <p class="project-desc">${escHtml(p.description || "No description")}</p>
+            <div class="project-meta">
+              <span>By ${escHtml(p.creator_name)}</span>
+              <span>${formatDate(p.created_at)}</span>
+            </div>
+          </div>
+        `).join("");
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state error">Failed to load projects.</div>`;
+      }
+    }
+
+    async function loadMyTasks() {
+      const list = document.getElementById("myTasksList");
+      try {
+        const res = await apiFetch("/api/tasks/my");
+        const d = await res.json();
+        document.getElementById("myTaskCount").textContent = d.count === 1 ? "1 task" : d.count + " tasks";
+
+        if (!d.tasks.length) {
+          list.innerHTML = `<div class="empty-state">
+            <div class="empty-icon">No assigned tasks</div>
+            <p>${user.role === "admin" ? "Tasks assigned to you will appear here." : "Ask an admin to assign you to a project task."}</p>
+          </div>`;
+          return;
+        }
+
+        list.innerHTML = d.tasks.slice(0, 6).map(t => `
+          <a class="task-row ${t.is_overdue ? "overdue" : ""}" href="/project?id=${t.project_id}">
+            <div>
+              <div class="task-row-title">${escHtml(t.title)}</div>
+            <div class="task-row-meta">
+                ${t.due_date ? `<span>${t.is_overdue ? "Overdue" : "Due"} ${t.due_date}</span>` : `<span>No due date</span>`}
+              </div>
+            </div>
+            <span class="task-row-status ${statusClass(t.status)}">${escHtml(t.status)}</span>
+          </a>
+        `).join("");
+      } catch (err) {
+        list.innerHTML = `<div class="empty-state error">Failed to load tasks.</div>`;
+      }
+    }
+
+    function statusClass(status) {
+      if (status === "done") return "done";
+      if (status === "in_progress") return "progress";
+      return "todo";
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>
