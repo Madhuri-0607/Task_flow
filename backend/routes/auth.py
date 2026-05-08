@@ -52,7 +52,7 @@ def signup():
 
     # Create new user (always as member)
     hashed_pw = generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
-    user = User(name=name, email=email, password=hashed_pw, role="admin")
+    user = User(name=name, email=email, password=hashed_pw, role="member")
     
     try:
         db.session.add(user)
